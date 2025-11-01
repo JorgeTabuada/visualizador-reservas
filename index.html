@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Reservas v3.0 - Multipark vs Topparking</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #0052CC;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            padding: 15px 30px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .nav-tab:hover {
+            background: #e9ecef;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #0052CC;
+            border-bottom: 3px solid #0052CC;
+        }
+
+        .page {
+            display: none;
+            padding: 15px 20px;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border: 3px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+
+        .upload-section:hover {
+            border-color: #0052CC;
+            background: #e8f4ff;
+        }
+
+        .upload-section h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #0052CC;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 82, 204, 0.4);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-name {
+            display: block;
+            margin-top: 10px;
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px 15px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-card.multipark {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #f0fff4 0%, #e8f8ed 100%);
+        }
+
+        .stat-card.topparking {
+            border-color: #007bff;
+            background: linear-gradient(135deg, #f0f8ff 0%, #e8f4ff 100%);
+        }
+
+        .stat-card.error {
+            border-color: #dc3545;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+        }
+
+        .stat-label {
+            font-size: 0.75em;
+            color: #6c757d;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #212529;
+            margin-bottom: 3px;
+        }
+
+        .stat-sub {
+            font-size: 0.7em;
+            color: #6c757d;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #dee2e6;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            background: #0052CC;
+            color: white;
+            border-color: #0052CC;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 600px;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background: #0052CC;
+            color: white;
+            z-index: 10;
+        }
+
+        th {
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tbody tr.error-row {
+            background-color: #ffebee !important;
+        }
+
+        tbody tr.error-row:hover {
+            background-color: #ffcdd2 !important;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .badge-multipark {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .badge-topparking {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .badge-both {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-ok {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .badge-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            cursor: help;
+        }
+
+        .money-positive {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .money-negative {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .comparison-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .comparison-card h3 {
+            margin-bottom: 20px;
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .comparison-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .comparison-row:last-child {
+            border-bottom: none;
+        }
+
+        .comparison-label {
+            font-weight: 500;
+            color: #6c757d;
+        }
+
+        .comparison-value {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .comparison-diff {
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .diff-positive {
+            color: #28a745;
+        }
+
+        .diff-negative {
+            color: #dc3545;
+        }
+
+        .export-section {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .export-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            margin: 10px;
+            background: #f0f2f5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            background: #0052CC;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 82, 204, 0.4);
+        }
+
+        .export-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-list {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 0.85em;
+        }
+
+        .error-list ul {
+            margin-left: 20px;
+            margin-top: 5px;
+        }
+
+        /* MODAL DE CORREÇÃO */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .modal-header h2 {
+            color: #495057;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .modal-close {
+            float: right;
+            font-size: 2em;
+            cursor: pointer;
+            color: #6c757d;
+            line-height: 0.8;
+            font-weight: 300;
+        }
+
+        .modal-close:hover {
+            color: #dc3545;
+        }
+
+        .error-detail {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .error-detail h3 {
+            color: #856404;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .error-detail ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+
+        .correction-field {
+            margin-bottom: 20px;
+        }
+
+        .correction-field label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        .correction-field input,
+        .correction-field select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .correction-field input:focus,
+        .correction-field select:focus {
+            outline: none;
+            border-color: #0052CC;
+        }
+
+        .current-value {
+            background: #ffebee;
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .expected-value {
+            background: #e8f5e9;
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-btn-save {
+            background: #28a745;
+            color: white;
+        }
+
+        .modal-btn-save:hover {
+            background: #218838;
+        }
+
+        .modal-btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #5a6268;
+        }
+
+        .transfer-card {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe8b3 100%);
+            border: 3px solid #ffc107;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .transfer-card h3 {
+            color: #856404;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .transfer-amount {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #856404;
+            margin: 15px 0;
+        }
+
+        .transfer-direction {
+            font-size: 1.2em;
+            color: #856404;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .nav-tab {
+                padding: 12px 20px;
+                font-size: 0.9em;
+            }
+
+            .page {
+                padding: 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Visualizador de Reservas v3.0</h1>
+            <p>Análise Multipark vs Topparking - Lisboa e Porto</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="changePage('upload')">📤 Upload</button>
+            <button class="nav-tab" onclick="changePage('lisboa')">🏙️ Lisboa</button>
+            <button class="nav-tab" onclick="changePage('porto')">🌊 Porto</button>
+            <button class="nav-tab" onclick="changePage('resumo')">📊 Resumo</button>
+            <button class="nav-tab" onclick="changePage('export')">💾 Exportar</button>
+        </div>
+
+        <!-- PAGE 1: UPLOAD -->
+        <div id="page-upload" class="page active">
+            <div class="upload-section">
+                <h3>🏙️ Lisboa</h3>
+                <div class="file-input-wrapper">
+                    <label class="file-input-label" for="fileLisboa">
+                        Selecionar Ficheiro Excel
+                    </label>
+                    <input type="file" id="fileLisboa" class="file-input" accept=".xlsx,.xls" onchange="handleFileUpload('lisboa', this)">
+                </div>
+                <span id="fileNamelisboa" class="file-name"></span>
+            </div>
+
+            <div class="upload-section">
+                <h3>🌊 Porto</h3>
+                <div class="file-input-wrapper">
+                    <label class="file-input-label" for="filePorto">
+                        Selecionar Ficheiro Excel
+                    </label>
+                    <input type="file" id="filePorto" class="file-input" accept=".xlsx,.xls" onchange="handleFileUpload('porto', this)">
+                </div>
+                <span id="fileNameporto" class="file-name"></span>
+            </div>
+
+            <div id="dashboard-geral"></div>
+        </div>
+
+        <!-- PAGE 2: LISBOA -->
+        <div id="page-lisboa" class="page">
+            <div id="stats-lisboa"></div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterData('lisboa', 'all')">TODAS</button>
+                <button class="filter-btn" onclick="filterData('lisboa', 'multipark')">🟢 MULTIPARK</button>
+                <button class="filter-btn" onclick="filterData('lisboa', 'topparking')">🔵 TOPPARKING</button>
+                <button class="filter-btn" onclick="filterData('lisboa', 'errors')">⚠️ COM ERROS</button>
+            </div>
+            <div id="table-lisboa" class="table-wrapper"></div>
+        </div>
+
+        <!-- PAGE 3: PORTO -->
+        <div id="page-porto" class="page">
+            <div id="stats-porto"></div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterData('porto', 'all')">TODAS</button>
+                <button class="filter-btn" onclick="filterData('porto', 'multipark')">🟢 MULTIPARK</button>
+                <button class="filter-btn" onclick="filterData('porto', 'topparking')">🔵 TOPPARKING</button>
+                <button class="filter-btn" onclick="filterData('porto', 'errors')">⚠️ COM ERROS</button>
+            </div>
+            <div id="table-porto" class="table-wrapper"></div>
+        </div>
+
+        <!-- PAGE 4: RESUMO -->
+        <div id="page-resumo" class="page">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #495057;">📊 Resumo Consolidado</h2>
+            <div id="resumo-content"></div>
+        </div>
+
+        <!-- PAGE 5: EXPORT -->
+        <div id="page-export" class="page">
+            <div class="export-section">
+                <h2 style="margin-bottom: 30px; color: #495057;">💾 Exportar Dados</h2>
+                <p style="margin-bottom: 30px; color: #6c757d;">Escolha o formato de exportação:</p>
+                <button class="export-btn" onclick="exportToExcel()">📊 Exportar para Excel</button>
+                <button class="export-btn" onclick="exportToCSV()">📄 Exportar para CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CORREÇÃO -->
+    <div id="correctionModal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-close" onclick="closeModal()">&times;</span>
+                <h2>⚠️ Corrigir Reserva</h2>
+                <p style="color: #6c757d; margin-top: 10px;">Matrícula: <strong id="modal-license"></strong></p>
+            </div>
+
+            <div class="error-detail">
+                <h3>❌ Erros Encontrados:</h3>
+                <ul id="modal-errors"></ul>
+            </div>
+
+            <div id="modal-corrections"></div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button class="modal-btn modal-btn-save" onclick="saveCorrections()">Guardar Correções</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global data storage
+        let lisboaData = [];
+        let portoData = [];
+        let currentFilter = { lisboa: 'all', porto: 'all' };
+        let currentCorrectionRow = null;
+        let currentCorrectionCity = null;
+        let currentCorrectionIndex = null;
+
+        // ========================================
+        // MODAL FUNCTIONS
+        // ========================================
+
+        function openCorrectionModal(city, rowIndex) {
+            const data = city === 'lisboa' ? lisboaData : portoData;
+            const row = data[rowIndex];
+
+            if (!row.temErros) {
+                alert('Esta reserva não tem erros!');
+                return;
+            }
+
+            currentCorrectionRow = row;
+            currentCorrectionCity = city;
+            currentCorrectionIndex = rowIndex;
+
+            // Set license plate
+            document.getElementById('modal-license').textContent = row.licensePlate || 'N/A';
+
+            // Set errors list
+            const errorsList = document.getElementById('modal-errors');
+            errorsList.innerHTML = '';
+            row.erros.forEach(erro => {
+                const li = document.createElement('li');
+                li.textContent = erro;
+                errorsList.appendChild(li);
+            });
+
+            // Build correction fields
+            const correctionsDiv = document.getElementById('modal-corrections');
+            correctionsDiv.innerHTML = '';
+
+            // Check what fields need correction
+            if (row.totalLeftToPay !== 0) {
+                correctionsDiv.innerHTML += `
+                    <div class="correction-field">
+                        <label>💰 Por Pagar:</label>
+                        <div class="current-value">❌ Atual: ${formatMoney(row.totalLeftToPay)}</div>
+                        <div class="expected-value">✅ Deve ser: 0.00€</div>
+                        <input type="number" id="correct-leftToPay" step="0.01" value="0" />
+                    </div>
+                `;
+            }
+
+            if (row.stats && row.stats.toLowerCase() !== 'entregue') {
+                correctionsDiv.innerHTML += `
+                    <div class="correction-field">
+                        <label>📋 Stats:</label>
+                        <div class="current-value">❌ Atual: ${row.stats || 'Vazio'}</div>
+                        <div class="expected-value">✅ Deve ser: entregue</div>
+                        <select id="correct-stats">
+                            <option value="entregue">Entregue</option>
+                            <option value="${row.stats}">${row.stats || 'Vazio'}</option>
+                        </select>
+                    </div>
+                `;
+            }
+
+            if (row.hasOnlinePayment && !row.paymentIntentId) {
+                correctionsDiv.innerHTML += `
+                    <div class="correction-field">
+                        <label>🔗 Payment Intent ID:</label>
+                        <div class="current-value">❌ Atual: Vazio</div>
+                        <div class="expected-value">✅ Necessário quando hasOnlinePayment=VERDADEIRO</div>
+                        <input type="text" id="correct-paymentIntentId" placeholder="Inserir Payment Intent ID" />
+                    </div>
+                `;
+            }
+
+            if (row.paymentIntentId && !row.hasOnlinePayment) {
+                correctionsDiv.innerHTML += `
+                    <div class="correction-field">
+                        <label>✅ Pagamento Online:</label>
+                        <div class="current-value">❌ Atual: ${row.hasOnlinePayment || 'FALSO'}</div>
+                        <div class="expected-value">✅ Deve ser: VERDADEIRO (tem paymentIntentId)</div>
+                        <select id="correct-hasOnlinePayment">
+                            <option value="VERDADEIRO">VERDADEIRO</option>
+                            <option value="FALSO">FALSO</option>
+                        </select>
+                    </div>
+                `;
+            }
+
+            const isNoPayMethod = (row.paymentMethod || '').toUpperCase().includes('NO PAY');
+            if (isNoPayMethod && !row.campaign) {
+                correctionsDiv.innerHTML += `
+                    <div class="correction-field">
+                        <label>🏷️ Campanha/Agregador:</label>
+                        <div class="current-value">❌ Atual: Vazio</div>
+                        <div class="expected-value">✅ Necessário para NO PAY</div>
+                        <input type="text" id="correct-campaign" placeholder="Nome da campanha ou agregador" />
+                    </div>
+                `;
+            }
+
+            // Show modal
+            document.getElementById('correctionModal').classList.add('active');
+        }
+
+        function closeModal(event) {
+            if (event && event.target.classList.contains('modal-content')) {
+                return; // Don't close if clicking inside modal content
+            }
+            document.getElementById('correctionModal').classList.remove('active');
+            currentCorrectionRow = null;
+            currentCorrectionCity = null;
+            currentCorrectionIndex = null;
+        }
+
+        function saveCorrections() {
+            if (!currentCorrectionRow || !currentCorrectionCity) return;
+
+            const data = currentCorrectionCity === 'lisboa' ? lisboaData : portoData;
+            const row = data[currentCorrectionIndex];
+
+            // Apply corrections
+            const leftToPay = document.getElementById('correct-leftToPay');
+            if (leftToPay) {
+                row.totalLeftToPay = parseFloat(leftToPay.value) || 0;
+            }
+
+            const stats = document.getElementById('correct-stats');
+            if (stats) {
+                row.stats = stats.value;
+            }
+
+            const paymentIntentId = document.getElementById('correct-paymentIntentId');
+            if (paymentIntentId) {
+                row.paymentIntentId = paymentIntentId.value;
+            }
+
+            const hasOnlinePayment = document.getElementById('correct-hasOnlinePayment');
+            if (hasOnlinePayment) {
+                row.hasOnlinePayment = hasOnlinePayment.value;
+            }
+
+            const campaign = document.getElementById('correct-campaign');
+            if (campaign) {
+                row.campaign = campaign.value;
+            }
+
+            // Recalculate validation
+            const validation = validateAndCalculate(row, currentCorrectionCity);
+            Object.assign(row, validation);
+
+            // Update data
+            if (currentCorrectionCity === 'lisboa') {
+                lisboaData[currentCorrectionIndex] = row;
+            } else {
+                portoData[currentCorrectionIndex] = row;
+            }
+
+            // Re-render everything
+            renderDashboardGeral();
+            renderCityPage(currentCorrectionCity);
+            renderResumoPage();
+
+            // Close modal
+            closeModal();
+
+            alert('Correções guardadas! A linha foi atualizada.');
+        }
+
+        // ========================================
+        // UTILITY FUNCTIONS
+        // ========================================
+
+        function formatMoney(value) {
+            if (value === null || value === undefined || isNaN(value)) return '0.00€';
+            return parseFloat(value).toFixed(2) + '€';
+        }
+
+        function formatDate(value) {
+            if (!value) return '';
+
+            // Handle Firebase Timestamp string format
+            if (typeof value === 'string' && value.includes('Timestamp')) {
+                const match = value.match(/seconds=(\d+)/);
+                if (match) {
+                    const timestamp = parseInt(match[1]) * 1000;
+                    const date = new Date(timestamp);
+                    return date.toLocaleString('pt-PT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            }
+
+            // Handle object with seconds property
+            if (typeof value === 'object' && value.seconds) {
+                const timestamp = value.seconds * 1000;
+                const date = new Date(timestamp);
+                return date.toLocaleString('pt-PT', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+
+            // Return as-is if already formatted
+            return value;
+        }
+
+        function changePage(pageName) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+            // Show selected page
+            document.getElementById('page-' + pageName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ========================================
+        // VALIDATION AND CALCULATION
+        // ========================================
+
+        function validateAndCalculate(row, city) {
+            const totalGeral = parseFloat(row.totalGeral) || 0;
+            const totalPaid = parseFloat(row.totalPaid) || 0;
+            const totalLeftToPay = parseFloat(row.totalLeftToPay) || 0;
+            const bookingPrice = parseFloat(row.bookingPrice) || 0;
+            const priceOnDelivery = parseFloat(row.priceOnDelivery) || 0;
+            const correctedPrice = parseFloat(row.correctedPrice) || 0;
+            const paymentMethod = (row.paymentMethod || '').toUpperCase();
+            const paymentIntentId = row.paymentIntentId || '';
+            const hasOnlinePaymentStr = String(row.hasOnlinePayment).toUpperCase();
+            const hasOnlinePayment = hasOnlinePaymentStr === 'VERDADEIRO' || hasOnlinePaymentStr === 'TRUE';
+            const campaign = row.campaign || '';
+            const stats = (row.stats || '').toLowerCase();
+
+            let erros = [];
+            let valorMultipark = 0;
+            let valorTopparking = 0;
+            let quemRecebeu = '';
+
+            // VALIDAÇÕES
+            if (totalLeftToPay !== 0) {
+                erros.push(`Falta pagar ${totalLeftToPay}€`);
+            }
+
+            if (stats !== 'entregue') {
+                erros.push(`Stats deve ser "entregue"`);
+            }
+
+            if (hasOnlinePayment && !paymentIntentId) {
+                erros.push('hasOnlinePayment=VERDADEIRO mas sem paymentIntentId');
+            }
+
+            if (paymentIntentId && !hasOnlinePayment) {
+                erros.push('Tem paymentIntentId mas hasOnlinePayment=FALSO');
+            }
+
+            const isNoPayMethod = paymentMethod.includes('NO PAY') || paymentMethod.includes('NOPAY');
+            if (isNoPayMethod && !campaign) {
+                erros.push('NO PAY sem nome da campanha/agregador');
+            }
+
+            // ANALISAR PRICINGS
+            let pricingsData = [];
+            try {
+                if (typeof row.pricings === 'string') {
+                    pricingsData = JSON.parse(row.pricings);
+                } else if (Array.isArray(row.pricings)) {
+                    pricingsData = row.pricings;
+                }
+
+                const totalPricings = pricingsData.reduce((sum, p) => sum + (parseFloat(p.total) || 0), 0);
+                const paidPricings = pricingsData.reduce((sum, p) => sum + (parseFloat(p.amountPaid) || 0), 0);
+
+                if (Math.abs(totalPricings - totalGeral) > 0.01) {
+                    erros.push(`Total pricings (${totalPricings.toFixed(2)}€) ≠ totalGeral (${totalGeral.toFixed(2)}€)`);
+                }
+                if (Math.abs(paidPricings - totalPaid) > 0.01) {
+                    erros.push(`Pago pricings (${paidPricings.toFixed(2)}€) ≠ totalPaid (${totalPaid.toFixed(2)}€)`);
+                }
+
+                const entrega = pricingsData.find(p => p.description === 'Entrega');
+                if (entrega) {
+                    const valorEntrega = parseFloat(entrega.amountPaid) || 0;
+                    if (Math.abs(valorEntrega - priceOnDelivery) > 0.01) {
+                        erros.push(`Entrega (${valorEntrega.toFixed(2)}€) ≠ priceOnDelivery (${priceOnDelivery.toFixed(2)}€)`);
+                    }
+                }
+            } catch (e) {
+                erros.push('Erro ao processar pricings');
+            }
+
+            // CÁLCULO DE QUEM RECEBEU
+            let valorReserva = 0;
+            let valorEntrega = 0;
+
+            for (const pricing of pricingsData) {
+                const desc = (pricing.description || '').toLowerCase();
+                const pMethod = (pricing.paymentMethod || '').toLowerCase();
+                const valor = parseFloat(pricing.amountPaid) || 0;
+
+                // ORDEM: Numerário > Viva Wallet > Description
+                if (pMethod.includes('numerário') || pMethod.includes('numerario') ||
+                    pMethod.includes('dinheiro') || pMethod.includes('cash')) {
+                    valorEntrega += valor;
+                } else if (pMethod.includes('viva wallet') || pMethod.includes('viva-wallet') ||
+                           pMethod.includes('pago por link') || pMethod.includes('link')) {
+                    valorReserva += valor;
+                } else if (desc.includes('reserva')) {
+                    valorReserva += valor;
+                } else if (desc.includes('entrega')) {
+                    valorEntrega += valor;
+                } else if (desc.includes('alteração') || desc.includes('alteracao') ||
+                           desc.includes('serviços') || desc.includes('servicos') ||
+                           desc.includes('correção') || desc.includes('correcao') ||
+                           desc.includes('desconto')) {
+                    valorEntrega += valor;
+                } else {
+                    valorEntrega += valor;
+                }
+            }
+
+            if (city.toLowerCase() === 'porto') {
+                valorMultipark = valorReserva;
+                valorTopparking = valorEntrega;
+            } else {
+                valorTopparking = valorReserva;
+                valorMultipark = valorEntrega;
+            }
+
+            if (Math.abs(valorMultipark) > 0.01 && Math.abs(valorTopparking) > 0.01) {
+                quemRecebeu = 'Ambas';
+            } else if (Math.abs(valorMultipark) > 0.01) {
+                quemRecebeu = 'Multipark';
+            } else if (Math.abs(valorTopparking) > 0.01) {
+                quemRecebeu = 'Topparking';
+            } else {
+                quemRecebeu = 'Indefinido';
+                erros.push('Não há valores em pricings');
+            }
+
+            return {
+                quemRecebeu,
+                valorMultipark,
+                valorTopparking,
+                temErros: erros.length > 0,
+                erros: erros,
+                validacao: erros.length > 0 ? '⚠️ REVISAR' : '✓ OK'
+            };
+        }
+
+        function calculateCityStats(data) {
+            let total = data.length;
+            let totalMultipark = 0;
+            let totalTopparking = 0;
+            let reservasMultipark = 0;
+            let reservasTopparking = 0;
+            let comErros = 0;
+
+            data.forEach(row => {
+                totalMultipark += row.valorMultipark;
+                totalTopparking += row.valorTopparking;
+
+                if (row.quemRecebeu === 'Multipark' || row.quemRecebeu === 'Ambas') {
+                    reservasMultipark++;
+                }
+                if (row.quemRecebeu === 'Topparking' || row.quemRecebeu === 'Ambas') {
+                    reservasTopparking++;
+                }
+                if (row.temErros) {
+                    comErros++;
+                }
+            });
+
+            return {
+                total,
+                totalMultipark,
+                totalTopparking,
+                totalGeral: totalMultipark + totalTopparking,
+                reservasMultipark,
+                reservasTopparking,
+                comErros
+            };
+        }
+
+        // ========================================
+        // FILE UPLOAD
+        // ========================================
+
+        function handleFileUpload(city, input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            document.getElementById(`fileName${city}`).textContent = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                // Process data with validation
+                const processedData = jsonData.map(row => {
+                    const validation = validateAndCalculate(row, city);
+                    return {
+                        ...row,
+                        ...validation
+                    };
+                });
+
+                if (city === 'lisboa') {
+                    lisboaData = processedData;
+                } else {
+                    portoData = processedData;
+                }
+
+                renderDashboardGeral();
+                renderCityPage(city);
+                renderResumoPage();
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ========================================
+        // RENDER DASHBOARD GERAL (PAGE 1)
+        // ========================================
+
+        function renderDashboardGeral() {
+            if (lisboaData.length === 0 && portoData.length === 0) {
+                document.getElementById('dashboard-geral').innerHTML = '';
+                return;
+            }
+
+            const statsLisboa = calculateCityStats(lisboaData);
+            const statsPorto = calculateCityStats(portoData);
+
+            const html = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">🏙️ Lisboa - Total Reservas</div>
+                        <div class="stat-value">${statsLisboa.total}</div>
+                        ${statsLisboa.comErros > 0 ? `<div class="stat-sub">⚠️ ${statsLisboa.comErros} com erros</div>` : ''}
+                    </div>
+
+                    <div class="stat-card multipark">
+                        <div class="stat-label">🟢 Lisboa - Multipark</div>
+                        <div class="stat-value">${formatMoney(statsLisboa.totalMultipark)}</div>
+                        <div class="stat-sub">${statsLisboa.reservasMultipark} reservas</div>
+                    </div>
+
+                    <div class="stat-card topparking">
+                        <div class="stat-label">🔵 Lisboa - Topparking</div>
+                        <div class="stat-value">${formatMoney(statsLisboa.totalTopparking)}</div>
+                        <div class="stat-sub">${statsLisboa.reservasTopparking} reservas</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">🌊 Porto - Total Reservas</div>
+                        <div class="stat-value">${statsPorto.total}</div>
+                        ${statsPorto.comErros > 0 ? `<div class="stat-sub">⚠️ ${statsPorto.comErros} com erros</div>` : ''}
+                    </div>
+
+                    <div class="stat-card multipark">
+                        <div class="stat-label">🟢 Porto - Multipark</div>
+                        <div class="stat-value">${formatMoney(statsPorto.totalMultipark)}</div>
+                        <div class="stat-sub">${statsPorto.reservasMultipark} reservas</div>
+                    </div>
+
+                    <div class="stat-card topparking">
+                        <div class="stat-label">🔵 Porto - Topparking</div>
+                        <div class="stat-value">${formatMoney(statsPorto.totalTopparking)}</div>
+                        <div class="stat-sub">${statsPorto.reservasTopparking} reservas</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('dashboard-geral').innerHTML = html;
+        }
+
+        // ========================================
+        // RENDER CITY PAGE (PAGES 2 & 3)
+        // ========================================
+
+        function renderCityPage(city) {
+            const data = city === 'lisboa' ? lisboaData : portoData;
+            const stats = calculateCityStats(data);
+
+            // Render stats
+            const statsHtml = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">📊 Total de Reservas</div>
+                        <div class="stat-value">${stats.total}</div>
+                    </div>
+
+                    <div class="stat-card multipark">
+                        <div class="stat-label">🟢 Multipark</div>
+                        <div class="stat-value">${formatMoney(stats.totalMultipark)}</div>
+                        <div class="stat-sub">${stats.reservasMultipark} reservas</div>
+                    </div>
+
+                    <div class="stat-card topparking">
+                        <div class="stat-label">🔵 Topparking</div>
+                        <div class="stat-value">${formatMoney(stats.totalTopparking)}</div>
+                        <div class="stat-sub">${stats.reservasTopparking} reservas</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">💰 Total Recebido</div>
+                        <div class="stat-value">${formatMoney(stats.totalGeral)}</div>
+                    </div>
+
+                    ${stats.comErros > 0 ? `
+                    <div class="stat-card error">
+                        <div class="stat-label">⚠️ Reservas com Erros</div>
+                        <div class="stat-value">${stats.comErros}</div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            document.getElementById(`stats-${city}`).innerHTML = statsHtml;
+
+            // Render table
+            renderTable(city);
+        }
+
+        function renderTable(city) {
+            const data = city === 'lisboa' ? lisboaData : portoData;
+            const filter = currentFilter[city];
+
+            let filteredData = data;
+            if (filter === 'multipark') {
+                filteredData = data.filter(row => row.quemRecebeu === 'Multipark' || row.quemRecebeu === 'Ambas');
+            } else if (filter === 'topparking') {
+                filteredData = data.filter(row => row.quemRecebeu === 'Topparking' || row.quemRecebeu === 'Ambas');
+            } else if (filter === 'errors') {
+                filteredData = data.filter(row => row.temErros);
+            }
+
+            if (filteredData.length === 0) {
+                document.getElementById(`table-${city}`).innerHTML = '<p style="text-align: center; padding: 40px; color: #6c757d;">Nenhuma reserva encontrada</p>';
+                return;
+            }
+
+            let tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>⚠️ Status</th>
+                            <th>💰 Quem Recebeu</th>
+                            <th>🟢 Multipark</th>
+                            <th>🔵 Topparking</th>
+                            <th>Matrícula</th>
+                            <th>Total Geral</th>
+                            <th>Total Pago</th>
+                            <th>Por Pagar</th>
+                            <th>Parque</th>
+                            <th>Método Pagamento</th>
+                            <th>Online?</th>
+                            <th>Stats</th>
+                            <th>Data Check-in</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            filteredData.forEach((row, idx) => {
+                const originalIndex = data.indexOf(row);
+                const errorClass = row.temErros ? 'error-row' : '';
+                const errorTitle = row.temErros ? row.erros.join(' | ') : '';
+                const rowClick = row.temErros ? `onclick="openCorrectionModal('${city}', ${originalIndex})" style="cursor: pointer;"` : '';
+
+                let quemRecebeuBadge = '';
+                if (row.quemRecebeu === 'Multipark') {
+                    quemRecebeuBadge = '<span class="badge badge-multipark">Multipark</span>';
+                } else if (row.quemRecebeu === 'Topparking') {
+                    quemRecebeuBadge = '<span class="badge badge-topparking">Topparking</span>';
+                } else if (row.quemRecebeu === 'Ambas') {
+                    quemRecebeuBadge = '<span class="badge badge-both">Ambas</span>';
+                } else {
+                    quemRecebeuBadge = row.quemRecebeu;
+                }
+
+                const statusBadge = row.temErros
+                    ? `<span class="badge badge-error" title="${errorTitle}">🔧 ${row.validacao}</span>`
+                    : `<span class="badge badge-ok">${row.validacao}</span>`;
+
+                tableHtml += `
+                    <tr class="${errorClass}" ${rowClick}>
+                        <td>${statusBadge}</td>
+                        <td>${quemRecebeuBadge}</td>
+                        <td class="money-positive">${formatMoney(row.valorMultipark)}</td>
+                        <td class="money-positive">${formatMoney(row.valorTopparking)}</td>
+                        <td>${row.licensePlate || ''}</td>
+                        <td>${formatMoney(row.totalGeral)}</td>
+                        <td>${formatMoney(row.totalPaid)}</td>
+                        <td>${formatMoney(row.totalLeftToPay)}</td>
+                        <td>${row.parkId || ''}</td>
+                        <td>${row.paymentMethod || ''}</td>
+                        <td>${row.hasOnlinePayment || ''}</td>
+                        <td>${row.stats || ''}</td>
+                        <td>${formatDate(row.checkinDate)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += `
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById(`table-${city}`).innerHTML = tableHtml;
+        }
+
+        function filterData(city, filter) {
+            currentFilter[city] = filter;
+
+            // Update button states
+            const buttons = document.querySelectorAll(`#page-${city} .filter-btn`);
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            renderTable(city);
+        }
+
+        // ========================================
+        // RENDER RESUMO PAGE (PAGE 4)
+        // ========================================
+
+        function renderResumoPage() {
+            if (lisboaData.length === 0 && portoData.length === 0) {
+                document.getElementById('resumo-content').innerHTML = '<p style="text-align: center; padding: 40px; color: #6c757d;">Carregue os ficheiros para ver o resumo</p>';
+                return;
+            }
+
+            const statsLisboa = calculateCityStats(lisboaData);
+            const statsPorto = calculateCityStats(portoData);
+
+            // Porto: Multipark 40%, Topparking 60%
+            const portoExpectedMultipark = statsPorto.totalGeral * 0.40;
+            const portoExpectedTopparking = statsPorto.totalGeral * 0.60;
+            const portoDiffMultipark = statsPorto.totalMultipark - portoExpectedMultipark;
+            const portoDiffTopparking = statsPorto.totalTopparking - portoExpectedTopparking;
+
+            // Lisboa: Multipark 60%, Topparking 40%
+            const lisboaExpectedMultipark = statsLisboa.totalGeral * 0.60;
+            const lisboaExpectedTopparking = statsLisboa.totalGeral * 0.40;
+            const lisboaDiffMultipark = statsLisboa.totalMultipark - lisboaExpectedMultipark;
+            const lisboaDiffTopparking = statsLisboa.totalTopparking - lisboaExpectedTopparking;
+
+            const html = `
+                <div class="comparison-grid">
+                    <!-- LISBOA -->
+                    <div class="comparison-card">
+                        <h3>🏙️ Lisboa</h3>
+
+                        <div class="comparison-row">
+                            <span class="comparison-label">Total Geral:</span>
+                            <span class="comparison-value">${formatMoney(statsLisboa.totalGeral)}</span>
+                        </div>
+
+                        <div class="comparison-row">
+                            <span class="comparison-label">🟢 Multipark Recebeu:</span>
+                            <div style="text-align: right;">
+                                <div class="comparison-value">${formatMoney(statsLisboa.totalMultipark)}</div>
+                                <div class="comparison-diff ${lisboaDiffMultipark >= 0 ? 'diff-positive' : 'diff-negative'}">
+                                    Esperado: ${formatMoney(lisboaExpectedMultipark)} (60%)
+                                    <br>
+                                    ${lisboaDiffMultipark >= 0 ? '+' : ''}${formatMoney(lisboaDiffMultipark)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="comparison-row">
+                            <span class="comparison-label">🔵 Topparking Recebeu:</span>
+                            <div style="text-align: right;">
+                                <div class="comparison-value">${formatMoney(statsLisboa.totalTopparking)}</div>
+                                <div class="comparison-diff ${lisboaDiffTopparking >= 0 ? 'diff-positive' : 'diff-negative'}">
+                                    Esperado: ${formatMoney(lisboaExpectedTopparking)} (40%)
+                                    <br>
+                                    ${lisboaDiffTopparking >= 0 ? '+' : ''}${formatMoney(lisboaDiffTopparking)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="comparison-row">
+                            <span class="comparison-label">Total Reservas:</span>
+                            <span class="comparison-value">${statsLisboa.total}</span>
+                        </div>
+
+                        ${statsLisboa.comErros > 0 ? `
+                        <div class="comparison-row">
+                            <span class="comparison-label">⚠️ Com Erros:</span>
+                            <span class="comparison-value" style="color: #dc3545;">${statsLisboa.comErros}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- PORTO -->
+                    <div class="comparison-card">
+                        <h3>🌊 Porto</h3>
+
+                        <div class="comparison-row">
+                            <span class="comparison-label">Total Geral:</span>
+                            <span class="comparison-value">${formatMoney(statsPorto.totalGeral)}</span>
+                        </div>
+
+                        <div class="comparison-row">
+                            <span class="comparison-label">🟢 Multipark Recebeu:</span>
+                            <div style="text-align: right;">
+                                <div class="comparison-value">${formatMoney(statsPorto.totalMultipark)}</div>
+                                <div class="comparison-diff ${portoDiffMultipark >= 0 ? 'diff-positive' : 'diff-negative'}">
+                                    Esperado: ${formatMoney(portoExpectedMultipark)} (40%)
+                                    <br>
+                                    ${portoDiffMultipark >= 0 ? '+' : ''}${formatMoney(portoDiffMultipark)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="comparison-row">
+                            <span class="comparison-label">🔵 Topparking Recebeu:</span>
+                            <div style="text-align: right;">
+                                <div class="comparison-value">${formatMoney(statsPorto.totalTopparking)}</div>
+                                <div class="comparison-diff ${portoDiffTopparking >= 0 ? 'diff-positive' : 'diff-negative'}">
+                                    Esperado: ${formatMoney(portoExpectedTopparking)} (60%)
+                                    <br>
+                                    ${portoDiffTopparking >= 0 ? '+' : ''}${formatMoney(portoDiffTopparking)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="comparison-row">
+                            <span class="comparison-label">Total Reservas:</span>
+                            <span class="comparison-value">${statsPorto.total}</span>
+                        </div>
+
+                        ${statsPorto.comErros > 0 ? `
+                        <div class="comparison-row">
+                            <span class="comparison-label">⚠️ Com Erros:</span>
+                            <span class="comparison-value" style="color: #dc3545;">${statsPorto.comErros}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- CÁLCULO DE TRANSFERÊNCIAS CONSOLIDADAS -->
+                <div class="transfer-card">
+                    <h3>💸 Acerto de Contas Consolidado</h3>
+
+                    ${(() => {
+                        // BALANÇO CONSOLIDADO (Lisboa + Porto)
+                        // Positivo = Multipark recebeu a mais (deve pagar)
+                        // Negativo = Multipark recebeu a menos (deve receber)
+                        const balancoConsolidado = lisboaDiffMultipark + portoDiffMultipark;
+
+                        if (Math.abs(balancoConsolidado) < 0.01) {
+                            return '<div style="color: #28a745; font-size: 1.2em;">✅ Não são necessárias transferências! Os valores estão perfeitamente equilibrados.</div>';
+                        }
+
+                        // Detalhes por cidade
+                        let detalhes = '<div style="margin-bottom: 25px; font-size: 0.95em; color: #856404;">';
+
+                        detalhes += '<div style="margin-bottom: 10px;"><strong>📊 Detalhes por Cidade:</strong></div>';
+
+                        // Lisboa
+                        if (Math.abs(lisboaDiffMultipark) > 0.01) {
+                            if (lisboaDiffMultipark > 0) {
+                                detalhes += `
+                                    <div style="margin-bottom: 8px;">
+                                        🏙️ Lisboa: Multipark recebeu <strong>${formatMoney(Math.abs(lisboaDiffMultipark))}</strong> a mais
+                                    </div>
+                                `;
+                            } else {
+                                detalhes += `
+                                    <div style="margin-bottom: 8px;">
+                                        🏙️ Lisboa: Multipark recebeu <strong>${formatMoney(Math.abs(lisboaDiffMultipark))}</strong> a menos
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            detalhes += '<div style="margin-bottom: 8px;">🏙️ Lisboa: ✅ Valores corretos</div>';
+                        }
+
+                        // Porto
+                        if (Math.abs(portoDiffMultipark) > 0.01) {
+                            if (portoDiffMultipark > 0) {
+                                detalhes += `
+                                    <div style="margin-bottom: 8px;">
+                                        🌊 Porto: Multipark recebeu <strong>${formatMoney(Math.abs(portoDiffMultipark))}</strong> a mais
+                                    </div>
+                                `;
+                            } else {
+                                detalhes += `
+                                    <div style="margin-bottom: 8px;">
+                                        🌊 Porto: Multipark recebeu <strong>${formatMoney(Math.abs(portoDiffMultipark))}</strong> a menos
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            detalhes += '<div style="margin-bottom: 8px;">🌊 Porto: ✅ Valores corretos</div>';
+                        }
+
+                        detalhes += '</div>';
+                        detalhes += '<hr style="border: 1px solid #ffc107; margin: 20px 0;">';
+
+                        // Transferência final consolidada
+                        let transferencia = '';
+                        if (balancoConsolidado > 0) {
+                            // Multipark recebeu a mais no total, deve pagar para Topparking
+                            transferencia = `
+                                <div style="margin-top: 20px;">
+                                    <div style="font-size: 1.1em; margin-bottom: 15px; font-weight: 600;">💰 Transferência Final:</div>
+                                    <div class="transfer-amount">${formatMoney(Math.abs(balancoConsolidado))}</div>
+                                    <div class="transfer-direction">
+                                        🟢 Multipark → 🔵 Topparking
+                                    </div>
+                                    <div style="margin-top: 15px; font-size: 0.95em; color: #856404;">
+                                        Multipark recebeu <strong>${formatMoney(Math.abs(balancoConsolidado))}</strong> a mais considerando ambas as cidades
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Topparking recebeu a mais no total, deve pagar para Multipark
+                            transferencia = `
+                                <div style="margin-top: 20px;">
+                                    <div style="font-size: 1.1em; margin-bottom: 15px; font-weight: 600;">💰 Transferência Final:</div>
+                                    <div class="transfer-amount">${formatMoney(Math.abs(balancoConsolidado))}</div>
+                                    <div class="transfer-direction">
+                                        🔵 Topparking → 🟢 Multipark
+                                    </div>
+                                    <div style="margin-top: 15px; font-size: 0.95em; color: #856404;">
+                                        Multipark recebeu <strong>${formatMoney(Math.abs(balancoConsolidado))}</strong> a menos considerando ambas as cidades
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        return detalhes + transferencia;
+                    })()}
+                </div>
+
+                <!-- TOTAL CONSOLIDADO -->
+                <div class="stats-grid" style="margin-top: 30px;">
+                    <div class="stat-card">
+                        <div class="stat-label">📊 Total Consolidado</div>
+                        <div class="stat-value">${formatMoney(statsLisboa.totalGeral + statsPorto.totalGeral)}</div>
+                        <div class="stat-sub">${statsLisboa.total + statsPorto.total} reservas</div>
+                    </div>
+
+                    <div class="stat-card multipark">
+                        <div class="stat-label">🟢 Multipark Total</div>
+                        <div class="stat-value">${formatMoney(statsLisboa.totalMultipark + statsPorto.totalMultipark)}</div>
+                        <div class="stat-sub">${statsLisboa.reservasMultipark + statsPorto.reservasMultipark} reservas</div>
+                    </div>
+
+                    <div class="stat-card topparking">
+                        <div class="stat-label">🔵 Topparking Total</div>
+                        <div class="stat-value">${formatMoney(statsLisboa.totalTopparking + statsPorto.totalTopparking)}</div>
+                        <div class="stat-sub">${statsLisboa.reservasTopparking + statsPorto.reservasTopparking} reservas</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('resumo-content').innerHTML = html;
+        }
+
+        // ========================================
+        // EXPORT FUNCTIONS (PAGE 5)
+        // ========================================
+
+        function exportToExcel() {
+            if (lisboaData.length === 0 && portoData.length === 0) {
+                alert('Por favor carregue os ficheiros primeiro');
+                return;
+            }
+
+            // Prepare data for export
+            const exportData = [];
+
+            lisboaData.forEach(row => {
+                exportData.push({
+                    Cidade: 'Lisboa',
+                    Status: row.validacao,
+                    QuemRecebeu: row.quemRecebeu,
+                    ValorMultipark: row.valorMultipark,
+                    ValorTopparking: row.valorTopparking,
+                    Matricula: row.licensePlate,
+                    TotalGeral: row.totalGeral,
+                    TotalPago: row.totalPaid,
+                    PorPagar: row.totalLeftToPay,
+                    Parque: row.parkId,
+                    MetodoPagamento: row.paymentMethod,
+                    Online: row.hasOnlinePayment,
+                    Stats: row.stats,
+                    Erros: row.erros.join(' | ')
+                });
+            });
+
+            portoData.forEach(row => {
+                exportData.push({
+                    Cidade: 'Porto',
+                    Status: row.validacao,
+                    QuemRecebeu: row.quemRecebeu,
+                    ValorMultipark: row.valorMultipark,
+                    ValorTopparking: row.valorTopparking,
+                    Matricula: row.licensePlate,
+                    TotalGeral: row.totalGeral,
+                    TotalPago: row.totalPaid,
+                    PorPagar: row.totalLeftToPay,
+                    Parque: row.parkId,
+                    MetodoPagamento: row.paymentMethod,
+                    Online: row.hasOnlinePayment,
+                    Stats: row.stats,
+                    Erros: row.erros.join(' | ')
+                });
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Dados");
+
+            const filename = `analise-reservas-${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, filename);
+        }
+
+        function exportToCSV() {
+            if (lisboaData.length === 0 && portoData.length === 0) {
+                alert('Por favor carregue os ficheiros primeiro');
+                return;
+            }
+
+            // Prepare CSV content
+            let csv = 'Cidade;Status;QuemRecebeu;ValorMultipark;ValorTopparking;Matricula;TotalGeral;TotalPago;PorPagar;Parque;MetodoPagamento;Online;Stats;Erros\n';
+
+            lisboaData.forEach(row => {
+                csv += `Lisboa;${row.validacao};${row.quemRecebeu};${row.valorMultipark};${row.valorTopparking};${row.licensePlate || ''};${row.totalGeral};${row.totalPaid};${row.totalLeftToPay};${row.parkId || ''};${row.paymentMethod || ''};${row.hasOnlinePayment || ''};${row.stats || ''};${row.erros.join(' | ')}\n`;
+            });
+
+            portoData.forEach(row => {
+                csv += `Porto;${row.validacao};${row.quemRecebeu};${row.valorMultipark};${row.valorTopparking};${row.licensePlate || ''};${row.totalGeral};${row.totalPaid};${row.totalLeftToPay};${row.parkId || ''};${row.paymentMethod || ''};${row.hasOnlinePayment || ''};${row.stats || ''};${row.erros.join(' | ')}\n`;
+            });
+
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `analise-reservas-${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
