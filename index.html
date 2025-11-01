@@ -288,7 +288,7 @@
 
         .badge-both {
             background-color: #fff3cd;
-            color: #856404;
+            color: #212529;
         }
 
         .badge-ok {
@@ -474,14 +474,14 @@
         }
 
         .error-detail h3 {
-            color: #856404;
+            color: #212529;
             font-size: 1.1em;
             margin-bottom: 10px;
         }
 
         .error-detail ul {
             margin-left: 20px;
-            color: #856404;
+            color: #212529;
         }
 
         .correction-field {
@@ -561,8 +561,8 @@
         }
 
         .transfer-card {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffe8b3 100%);
-            border: 3px solid #ffc107;
+            background: #ffffff;
+            border: 2px solid #e9ecef;
             border-radius: 12px;
             padding: 25px;
             margin-top: 30px;
@@ -570,21 +570,21 @@
         }
 
         .transfer-card h3 {
-            color: #856404;
+            color: #212529;
             margin-bottom: 20px;
             font-size: 1.3em;
         }
 
         .transfer-amount {
-            font-size: 2.5em;
+            font-size: 2.8em;
             font-weight: bold;
-            color: #856404;
+            color: #212529;
             margin: 15px 0;
         }
 
         .transfer-direction {
             font-size: 1.2em;
-            color: #856404;
+            color: #212529;
             margin-top: 15px;
         }
 
@@ -1479,7 +1479,7 @@
 
                 <!-- CÁLCULO DE TRANSFERÊNCIAS CONSOLIDADAS -->
                 <div class="transfer-card">
-                    <h3>💸 Acerto de Contas Consolidado</h3>
+                    <h3>Acerto de Contas Consolidado</h3>
 
                     ${(() => {
                         // BALANÇO CONSOLIDADO (Lisboa + Porto)
@@ -1492,9 +1492,9 @@
                         }
 
                         // Detalhes por cidade
-                        let detalhes = '<div style="margin-bottom: 25px; font-size: 0.95em; color: #856404;">';
+                        let detalhes = '<div style="margin-bottom: 25px; font-size: 0.95em; color: #212529;">';
 
-                        detalhes += '<div style="margin-bottom: 10px;"><strong>📊 Detalhes por Cidade:</strong></div>';
+                        detalhes += '<div style="margin-bottom: 10px;"><strong>Detalhes por Cidade:</strong></div>';
 
                         // Lisboa
                         if (Math.abs(lisboaDiffMultipark) > 0.01) {
@@ -1548,7 +1548,7 @@
                                     <div class="transfer-direction">
                                         Multipark → Topparking
                                     </div>
-                                    <div style="margin-top: 15px; font-size: 0.95em; color: #856404;">
+                                    <div style="margin-top: 15px; font-size: 0.95em; color: #212529;">
                                         Multipark recebeu <strong>${formatMoney(Math.abs(balancoConsolidado))}</strong> a mais considerando ambas as cidades
                                     </div>
                                 </div>
@@ -1562,7 +1562,7 @@
                                     <div class="transfer-direction">
                                         Topparking → Multipark
                                     </div>
-                                    <div style="margin-top: 15px; font-size: 0.95em; color: #856404;">
+                                    <div style="margin-top: 15px; font-size: 0.95em; color: #212529;">
                                         Multipark recebeu <strong>${formatMoney(Math.abs(balancoConsolidado))}</strong> a menos considerando ambas as cidades
                                     </div>
                                 </div>
